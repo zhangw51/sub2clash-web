@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>订阅转换 · Clash / mihomo / Surge / Base64</title>
+<meta name="description" content="纯本地订阅转换工具：把机场订阅链接转换成 Clash(mihomo)、provider、Base64、节点列表、Surge 配置。全程在浏览器内完成，订阅内容不会上传到任何服务器。" />
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --line:#e4e7ef; --text:#15202b; --muted:#697586;
+    --brand:#4f46e5; --brand-2:#7c6cf5; --ok:#0f9d58; --warn:#b45309; --err:#d93025;
+    --code-bg:#0f172a; --code-fg:#d6e2f0; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text); font-size:14px; line-height:1.6;
+    font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 18px 60px}
+  .hero{text-align:center;margin-bottom:26px}
+  .hero h1{margin:0 0 8px;font-size:27px;letter-spacing:-.4px;display:inline-block}
+  .badge{
+    display:inline-block;vertical-align:6px;margin-left:10px;padding:2px 10px;border-radius:999px;
+    font-size:11px;font-weight:600;color:#fff;letter-spacing:.3px;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+  }
+  .hero p{margin:0 auto;max-width:660px;color:var(--muted);font-size:13.5px}
+  .hero strong{color:#2f3d51}
+
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+  @media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+  .col-left,.col-right{display:flex;flex-direction:column;gap:18px;min-width:0}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 20px;
+        box-shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px -18px rgba(16,24,40,.25)}
+  .card h2{margin:0 0 14px;font-size:14px;font-weight:650;color:#2b3648;letter-spacing:.2px}
+
+  .tabs{display:flex;gap:6px;background:#eef1f8;padding:4px;border-radius:10px;margin-bottom:12px}
+  .tabs button{
+    flex:1;border:0;background:transparent;padding:8px 10px;border-radius:7px;cursor:pointer;
+    font-size:13px;color:var(--muted);font-family:inherit;transition:.15s;
+  }
+  .tabs button:hover{color:var(--text)}
+  .tabs button.on{background:#fff;color:var(--brand);font-weight:600;box-shadow:0 1px 3px rgba(16,24,40,.1)}
+  .pane.hidden{display:none}
+
+  textarea,input[type=text],input[type=number],select{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;
+    font-family:inherit;color:var(--text);background:#fbfcfe;outline:none;transition:.15s;
+  }
+  textarea{resize:vertical;font-family:ui-monospace,"SFMono-Regular",Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.6}
+  textarea:focus,input:focus,select:focus{border-color:var(--brand);background:#fff;box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+  textarea::placeholder{color:#a5aec0}
+
+  .row{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .hint{color:var(--muted);font-size:12px}
+  .hint.warn{color:var(--warn)}
+
+  .btn{
+    border:1px solid var(--line);background:#fff;color:#3a465a;padding:8px 14px;border-radius:9px;
+    font-size:13px;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap
+  }
+  .btn:hover{border-color:#c6cede;background:#f7f9fd}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.primary{
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border:0;
+    padding:11px 20px;font-size:13.5px;font-weight:600;box-shadow:0 6px 16px -8px rgba(79,70,229,.8)
+  }
+  .btn.primary:hover{filter:brightness(1.06)}
+  .btn.wide{width:100%;justify-content:center;display:block;text-align:center}
+
+  .drop{
+    border:1.5px dashed #c8d1e0;border-radius:11px;padding:26px 16px;text-align:center;color:var(--muted);
+    font-size:13px;background:#fafbfe;transition:.15s
+  }
+  .drop.hot{border-color:var(--brand);background:#f2f1fe;color:var(--brand)}
+  .link{color:var(--brand);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .grid2.full{grid-template-columns:1fr}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:12px;color:var(--muted);font-weight:500}
+
+  .checks{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:4px}
+  .chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#3a465a;cursor:pointer;user-select:none}
+  .chk input{width:15px;height:15px;accent-color:var(--brand);cursor:pointer;margin:0}
+
+  .msg{margin-top:12px;padding:11px 13px;border-radius:9px;font-size:12.8px;line-height:1.65;display:none}
+  .msg.show{display:block}
+  .msg.ok{background:#eaf7ef;border:1px solid #c3e6d1;color:#0b6b3a}
+  .msg.err{background:#fdeeee;border:1px solid #f4cccc;color:#a32219}
+  .msg.info{background:#eef3fe;border:1px solid #cddcf8;color:#25448a}
+  .msg b{font-weight:650}
+
+  .stats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .pill{background:#eef1f8;border-radius:999px;padding:4px 11px;font-size:12px;color:#44506a}
+  .pill b{color:var(--brand)}
+
+  .outhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .outhead .name{font-size:12px;color:var(--muted);font-family:ui-monospace,Consolas,monospace}
+  pre.code{
+    margin:0;background:var(--code-bg);color:var(--code-fg);border-radius:10px;padding:13px;
+    font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;font-size:12px;line-height:1.55;
+    max-height:400px;overflow:auto;white-space:pre;tab-size:2
+  }
+  .sub-tabs{display:flex;gap:6px;margin-bottom:10px}
+  .sub-tabs button{
+    border:0;background:transparent;padding:5px 11px;border-radius:7px;cursor:pointer;
+    font-size:12.5px;color:var(--muted);font-family:inherit
+  }
+  .sub-tabs button.on{background:#eef1f8;color:var(--brand);font-weight:600}
+  .panel.hidden{display:none}
+
+  table.nodes{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.nodes th,table.nodes td{text-align:left;padding:7px 8px;border-bottom:1px solid #eef1f8}
+  table.nodes th{color:var(--muted);font-weight:600;font-size:11.5px;background:#fafbfe;position:sticky;top:0}
+  table.nodes td.nm{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  table.nodes .tp{color:var(--brand);font-family:ui-monospace,Consolas,monospace;font-size:11.5px}
+  .scroll{max-height:400px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+
+  .empty{color:#9aa4b6;font-size:13px;text-align:center;padding:30px 10px}
+  footer{margin-top:26px;text-align:center;color:#8f99ac;font-size:12px;line-height:1.9}
+  footer code{background:#eef1f8;padding:1px 6px;border-radius:5px;font-size:11.5px}
+  details.tips{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:#fafbfe}
+  details.tips summary{cursor:pointer;padding:10px 0;font-size:12.8px;color:#44506a;font-weight:550}
+  details.tips div{padding:0 0 12px;font-size:12.5px;color:var(--muted);line-height:1.8}
+  details.tips ol{margin:6px 0 0;padding-left:20px}
+  details.tips code{background:#eef1f8;padding:1px 5px;border-radius:4px;font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>订阅转换</h1><span class="badge">纯本地运行</span>
+    <p>把机场订阅转换成 <strong>Clash / mihomo</strong>、<strong>provider</strong>、<strong>Base64</strong>、<strong>节点列表</strong> 或 <strong>Surge</strong> 配置。
+       所有解析都在你的浏览器里完成 —— <strong>订阅内容不会发送到任何服务器</strong>。</p>
+  </header>
+
+  <div class="layout">
+
+    <div class="col-left">
+
+      <section class="card">
+        <h2>1 · 提供订阅内容</h2>
+
+        <div class="tabs" id="inputTabs">
+          <button data-tab="url" class="on">订阅链接</button>
+          <button data-tab="text">粘贴内容</button>
+          <button data-tab="file">本地文件</button>
+        </div>
+
+        <div class="pane" data-pane="url">
+          <textarea id="subUrl" rows="3" placeholder="https://jmssub.net/members/getsub.php?service=xxx&amp;id=yyy&#10;（多个订阅链接可用 | 分隔）"></textarea>
+          <div class="row">
+            <button class="btn" id="btnFetch">尝试拉取</button>
+            <span class="hint warn">浏览器有跨域（CORS）限制，多半取不到 —— 取不到就切到「粘贴内容」。</span>
+          </div>
+        </div>
+
+        <div class="pane hidden" data-pane="text">
+          <textarea id="subText" rows="9" placeholder="把订阅内容整段粘在这里 —— base64 串、或一行一个的节点 URI，都行。&#10;&#10;怎么复制：在浏览器新标签页打开你的订阅链接，能正常显示一串乱码就是对的，Ctrl+A 全选 → Ctrl+C 复制 → 粘到这里。"></textarea>
+        </div>
+
+        <div class="pane hidden" data-pane="file">
+          <div class="drop" id="drop">
+            把订阅文件拖到这里，或 <label class="link">点击选择<input type="file" id="fileInput" hidden></label>
+            <div class="hint" id="fileName" style="margin-top:6px"></div>
+          </div>
+        </div>
+
+        <details class="tips">
+          <summary>为什么不能像网页版订阅那样一键拉取？</summary>
+          <div>
+            机场的订阅接口没有开放跨域许可（<code>Access-Control-Allow-Origin</code>），
+            浏览器出于安全策略会直接拦截页面发起的请求 —— 这是所有纯前端工具的共同限制，不是这个页面坏了。
+            另外浏览器也不允许网页自定义 <code>User-Agent</code>，部分机场会因为 UA 不对而返回网页而不是节点。
+            <ol>
+              <li>在新标签页打开你的订阅链接（能看到一串乱码就对了）</li>
+              <li><code>Ctrl+A</code> 全选 → <code>Ctrl+C</code> 复制</li>
+              <li>回到本页，切到「粘贴内容」，粘进去</li>
+            </ol>
+            如果你更想要「填个链接就能一直自动更新」，用下面的 <b>provider 模式</b> —— 它生成的配置里只有你自己的订阅地址，
+            由 Clash 内核自己去拉取和更新，不依赖本页面。
+          </div>
+        </details>
+      </section>
+
+      <section class="card">
+        <h2>2 · 输出选项</h2>
+
+        <div class="grid2">
+          <div class="field">
+            <label>输出格式</label>
+            <select id="target">
+              <option value="clash">Clash / mihomo 配置（内嵌节点）</option>
+              <option value="provider">provider 模式（不含节点，内核自动更新）</option>
+              <option value="base64">通用 Base64 订阅（v2rayN / 小火箭）</option>
+              <option value="node-list">明文节点列表</option>
+              <option value="surge">Surge 配置</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>混合端口（仅 Clash）</label>
+            <input type="number" id="port" value="7890" min="1" max="65535" />
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:12px">
+          <div class="field">
+            <label>只保留匹配的节点（用 | 或 , 分隔）</label>
+            <input type="text" id="include" placeholder="香港|日本|美国" />
+          </div>
+          <div class="field">
+            <label>排除匹配的节点</label>
+            <input type="text" id="exclude" placeholder="过期|试用|剩余流量" />
+          </div>
+        </div>
+
+        <div class="checks">
+          <label class="chk"><input type="checkbox" id="optSort" checked> 按名称自然排序</label>
+          <label class="chk"><input type="checkbox" id="optDedupe" checked> 去除重复节点</label>
+          <label class="chk"><input type="checkbox" id="optUdp" checked> 启用 UDP</label>
+          <label class="chk"><input type="checkbox" id="optTfo"> TFO 快速打开</label>
+          <label class="chk"><input type="checkbox" id="optScv"> 跳过证书验证</label>
+          <label class="chk"><input type="checkbox" id="optTun"> TUN 模式</label>
+          <label class="chk"><input type="checkbox" id="optFullRules" checked> 完整分流规则</label>
+        </div>
+
+        <div class="msg info" id="msg" ></div>
+
+        <button class="btn primary wide" id="btnGo" style="margin-top:14px">开始转换</button>
+      </section>
+
+    </div>
+
+    <div class="col-right">
+      <section class="card">
+        <h2>3 · 结果</h2>
+
+        <div class="stats" id="stats"></div>
+
+        <div class="sub-tabs" id="outTabs">
+          <button data-tab="code" class="on">配置内容</button>
+          <button data-tab="nodes">节点列表</button>
+        </div>
+
+        <div class="panel" data-panel="code">
+          <div class="outhead">
+            <span class="name" id="outName">—</span>
+            <span>
+              <button class="btn" id="btnCopy">复制</button>
+              <button class="btn" id="btnDl" style="margin-left:6px">下载</button>
+            </span>
+          </div>
+          <pre class="code" id="outCode">转换结果会显示在这里。</pre>
+        </div>
+
+        <div class="panel hidden" data-panel="nodes">
+          <div class="scroll">
+            <table class="nodes">
+              <thead><tr><th>#</th><th>节点名</th><th>协议</th><th>地址</th></tr></thead>
+              <tbody id="nodeRows"><tr><td colspan="4" class="empty">还没有转换结果</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+  </div>
+
+  <footer>
+    支持 ss / ssr / vmess / vless(含 Reality) / trojan / hysteria / hysteria2 / tuic 共 8 种协议<br />
+    全程离线运行，无任何第三方请求 · 生成的配置含节点密钥，请勿上传公开仓库或公开分享<br />
+    <span class="hint">Reality 协议需要 mihomo 系内核（Clash Verge Rev / ClashX Meta / mihomo），Clash for Windows 不支持</span>
+  </footer>
+</div>
+
+<script>
+/* __ENGINE__ */
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var S = Sub2Clash;
+
+  var state = {
+    tab: 'url',
+    fileText: '',
+    result: null,
+    timer: null,
+  };
+
+  function say(text, kind) {
+    var el = $('msg');
+    el.className = 'msg show ' + (kind || 'info');
+    el.innerHTML = text;
+  }
+
+  function hideMsg() { $('msg').className = 'msg'; }
+
+  /* ---------------------------- 输入模式切换 ---------------------------- */
+
+  var tabs = document.querySelectorAll('#inputTabs button');
+  Array.prototype.forEach.call(tabs, function (b) {
+    b.addEventListener('click', function () {
+      state.tab = b.getAttribute('data-tab');
+      Array.prototype.forEach.call(tabs, function (x) { x.classList.toggle('on', x === b); });
+      Array.prototype.forEach.call(document.querySelectorAll('.pane[data-pane]'), function (p) {
+        p.classList.toggle('hidden', p.getAttribute('data-pane') !== state.tab);
+      });
+    });
+  });
+
+  var outTabs = document.querySelectorAll('#outTabs button');
+  Array.prototype.forEach.call(outTabs, function (b) {
+    b.addEventListener('click', function () {
+      var t = b.getAttribute('data-tab');
+      Array.prototype.forEach.call(outTabs, function (x) { x.classList.toggle('on', x === b); });
+      Array.prototype.forEach.call(document.querySelectorAll('.panel[data-panel]'), function (p) {
+        p.classList.toggle('hidden', p.getAttribute('data-panel') !== t);
+      });
+    });
+  });
+
+  function switchTab(name) {
+    Array.prototype.forEach.call(tabs, function (x) {
+      x.classList.toggle('on', x.getAttribute('data-tab') === name);
+    });
+    state.tab = name;
+    Array.prototype.forEach.call(document.querySelectorAll('.pane[data-pane]'), function (p) {
+      p.classList.toggle('hidden', p.getAttribute('data-pane') !== name);
+    });
+  }
+
+  /* ---------------------------- 文件输入 ---------------------------- */
+
+  function readFile(f) {
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      state.fileText = String(r.result || '');
+      $('fileName').textContent = '已载入：' + f.name + '（' + state.fileText.length + ' 字符）';
+      $('fileName').className = 'hint';
+    };
+    r.readAsText(f, 'utf-8');
+  }
+
+  $('fileInput').addEventListener('change', function (e) { readFile(e.target.files[0]); });
+
+  var drop = $('drop');
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('hot'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('hot'); });
+  });
+  drop.addEventListener('drop', function (e) {
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
+  });
+
+  /* ---------------------------- 拉取订阅 ---------------------------- */
+
+  function fetchOne(url) {
+    return fetch(url, {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+      cache: 'no-store',
+      headers: { 'Accept': '*/*' },
+    }).then(function (r) {
+      if (!r.ok) throw new Error('服务器返回 HTTP ' + r.status);
+      return r.text();
+    });
+  }
+
+  function collectFromUrl() {
+    var urls = $('subUrl').value.split('|').map(function (s) { return s.trim(); }).filter(Boolean);
+    if (!urls.length) return Promise.reject(new Error('请先填写订阅链接。'));
+    var jobs = urls.map(function (u, i) {
+      return fetchOne(u).catch(function (e) {
+        throw new Error('第 ' + (i + 1) + ' 个链接拉取失败（' + e.message + '）。'
+          + '浏览器跨域限制是主因，请改用「粘贴内容」。');
+      });
+    });
+    return Promise.all(jobs).then(function (parts) {
+      var all = parts.join('\n');
+      if (all.trim().indexOf('://') === -1 && !S.isBase64Blob(all)) {
+        throw new Error('取回来的内容看起来不是订阅（可能是登录页或错误页）—— '
+          + '多半因为浏览器无法自定义 User-Agent。请改用「粘贴内容」。');
+      }
+      return all;
+    });
+  }
+
+  // 注意：这里所有失败分支都必须返回 rejected Promise，不能同步 throw ——
+  // 否则异常会绕过下面的 .catch()，变成未捕获错误，用户什么都看不到。
+  function getContent() {
+    if (state.tab === 'text') {
+      var t = $('subText').value;
+      if (!t.trim()) return Promise.reject(new Error('请先粘贴订阅内容。'));
+      return Promise.resolve(t);
+    }
+    if (state.tab === 'file') {
+      if (!state.fileText.trim()) return Promise.reject(new Error('请先选择一个订阅文件。'));
+      return Promise.resolve(state.fileText);
+    }
+    return collectFromUrl();
+  }
+
+  /* ---------------------------- 转换 ---------------------------- */
+
+  function readOptions() {
+    return {
+      target: $('target').value,
+      mixedPort: parseInt($('port').value, 10) || 7890,
+      include: $('include').value.trim(),
+      exclude: $('exclude').value.trim(),
+      sort: $('optSort').checked,
+      dedupe: $('optDedupe').checked,
+      udp: $('optUdp').checked,
+      tfo: $('optTfo').checked,
+      scv: $('optScv').checked,
+      tun: $('optTun').checked,
+      fullRules: $('optFullRules').checked,
+      providerUrl: $('subUrl').value.split('|')[0].trim(),
+      providerName: 'proxy-sub',
+      providerUa: S.DEFAULT_UA,
+    };
+  }
+
+  function render(res, opts) {
+    state.result = { text: res.text, filename: res.filename };
+
+    // 统计
+    var types = Object.keys(res.stats.types).map(function (t) {
+      return t + ' ' + res.stats.types[t];
+    }).join(' · ');
+    var pills = ['<span class="pill">节点 <b>' + res.stats.total + '</b></span>'];
+    if (types) pills.push('<span class="pill">' + types + '</span>');
+    if (res.stats.failed.length) {
+      pills.push('<span class="pill">跳过 <b>' + res.stats.failed.length + '</b> 条</span>');
+    }
+    if (opts.target === 'provider') {
+      pills.push('<span class="pill">provider 模式：不内嵌节点</span>');
+    }
+    $('stats').innerHTML = pills.join('');
+
+    // 配置预览
+    var text = res.text;
+    var MAX = 60000;
+    $('outCode').textContent = text.length > MAX
+      ? text.slice(0, MAX) + '\n\n… 内容过长，此处仅预览前 ' + MAX + ' 字符，完整内容请点「下载」。'
+      : text;
+    $('outName').textContent = res.filename + ' · ' + text.length + ' 字符';
+
+    // 节点列表
+    var rows = res.nodes.map(function (n, i) {
+      return '<tr><td>' + (i + 1) + '</td>'
+        + '<td class="nm" title="' + esc(n.name) + '">' + esc(n.name) + '</td>'
+        + '<td class="tp">' + esc(n.type) + '</td>'
+        + '<td>' + esc(n.server) + ':' + n.port + '</td></tr>';
+    }).join('');
+    $('nodeRows').innerHTML = rows || '<tr><td colspan="4" class="empty">没有节点</td></tr>';
+
+    // 提示
+    var note = '转换完成：<b>' + res.stats.total + ' 个节点</b>，格式 <b>' + res.filename + '</b>。';
+    if (opts.target === 'provider') {
+      note += '<br>provider 模式生成的配置<b>不含节点密钥</b>，只有一条订阅引用 —— '
+        + '需要把订阅链接填在「订阅链接」框里（取第一个链接）。';
+    }
+    if (opts.target === 'clash' || opts.target === 'surge') {
+      note += '<br>Reality 节点需要 mihomo 系内核（Clash Verge Rev / mihomo），旧版 Clash for Windows 不支持。';
+    }
+    say(note, 'ok');
+    $('btnCopy').disabled = false;
+    $('btnDl').disabled = false;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function doConvert() {
+    var opts;
+    try { opts = readOptions(); } catch (e) { say(e.message, 'err'); return; }
+
+    if (opts.target === 'provider' && !/^https?:\/\//i.test(opts.providerUrl)) {
+      say('provider 模式需要一个<b>在线订阅链接</b>（http/https）—— 这个地址会写进配置、由内核自行拉取更新。'
+        + '请在「订阅链接」里填写，或换一个输出格式。', 'err');
+      return;
+    }
+
+    $('btnGo').disabled = true;
+    $('btnGo').textContent = '转换中…';
+    hideMsg();
+
+    // 兜底：任何同步抛错都转成 rejected Promise，保证下面的 .catch() 能接住
+    var content;
+    try { content = getContent(); }
+    catch (e) { content = Promise.reject(e); }
+
+    content.then(function (text) {
+      // 让浏览器有机会把「转换中」画出来
+      return new Promise(function (resolve) { setTimeout(function () { resolve(text); }, 30); });
+    }).then(function (text) {
+      var res;
+      try {
+        res = S.convert(text, opts);
+      } catch (e) {
+        throw new Error(e && e.message ? e.message : String(e));
+      }
+      render(res, opts);
+    }).catch(function (e) {
+      var m = e && e.message ? e.message : String(e);
+      say('<b>转换失败：</b>' + esc(m)
+        + '<br><br>排查顺序：① 订阅是否过期 → ② 内容有没有粘全 → '
+        + '③ include / exclude 是否写得太严（可在浏览器控制台试试留空）', 'err');
+      $('stats').innerHTML = '';
+      $('outCode').textContent = '转换结果会显示在这里。';
+      $('nodeRows').innerHTML = '<tr><td colspan="4" class="empty">还没有转换结果</td></tr>';
+    }).then(function () {
+      $('btnGo').disabled = false;
+      $('btnGo').textContent = '开始转换';
+    });
+  }
+
+  $('btnGo').addEventListener('click', doConvert);
+
+  $('btnFetch').addEventListener('click', function () {
+    var urls = $('subUrl').value.split('|').map(function (s) { return s.trim(); }).filter(Boolean);
+    if (!urls.length) { say('请先填写订阅链接。', 'err'); return; }
+    $('btnFetch').disabled = true;
+    $('btnFetch').textContent = '拉取中…';
+    collectFromUrl().then(function (text) {
+      $('subText').value = text;
+      switchTab('text');
+      say('拉取成功，已自动切到「粘贴内容」页并填入。点「开始转换」即可。', 'ok');
+    }).catch(function (e) {
+      say('<b>拉取失败：</b>' + esc(e.message)
+        + '<br><br>这是浏览器跨域策略导致的，属正常现象。'
+        + '请在新标签页打开订阅链接，全选复制后粘到「粘贴内容」里。', 'err');
+    }).then(function () {
+      $('btnFetch').disabled = false;
+      $('btnFetch').textContent = '尝试拉取';
+    });
+  });
+
+  /* ---------------------------- 复制 / 下载 ---------------------------- */
+
+  $('btnCopy').addEventListener('click', function () {
+    if (!state.result) return;
+    var text = state.result.text;
+    function done() {
+      $('btnCopy').textContent = '已复制';
+      setTimeout(function () { $('btnCopy').textContent = '复制'; }, 1400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+    } else {
+      fallbackCopy(text, done);
+    }
+  });
+
+  function fallbackCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); }
+    catch (e) { say('复制失败，请手动在预览框里选中复制。', 'err'); }
+    document.body.removeChild(ta);
+  }
+
+  $('btnDl').addEventListener('click', function () {
+    if (!state.result) return;
+    var blob = new Blob([state.result.text], { type: 'text/plain;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = state.result.filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 200);
+  });
+
+  $('btnCopy').disabled = true;
+  $('btnDl').disabled = true;
+
+  // URL 参数预填：?url=<订阅链接>（方便收藏/分享自己的常用订阅）
+  try {
+    var qp = new URLSearchParams(location.search);
+    if (qp.get('url')) $('subUrl').value = qp.get('url');
+  } catch (e) { /* 忽略 */ }
+})();
+</script>
+</body>
+</html>
